@@ -7,12 +7,16 @@ service: serverless-todo-app-v3
 plugins:
   - serverless-iam-roles-per-function
 
+custom:
+  enterprise:
+    run: false
 
 provider:
   name: aws
-  runtime: nodejs20.x
+  runtime: nodejs18.x
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
+  profile: default
 
   tracing:
     lambda: true
@@ -22,12 +26,11 @@ provider:
     restApi: true
 
   environment:
-    TODOS_TABLE: Todos1-${self:provider.stage}
+    TODOS_TABLE: todos-table-${self:provider.stage}
     TODOS_CREATED_AT_INDEX: CreatedAtIndex
-    S3_BUCKET: udagram-attachments-camnx-${self:provider.stage}
+    S3_BUCKET: todos-s3-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 3600
     TODOS_USER_INDEX: TodoUserIndex
-    PROJECT_NAME: Todo
 
 functions:
 

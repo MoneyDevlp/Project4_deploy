@@ -38,19 +38,17 @@ export async function handler(event) {
 async function verifyToken(authHeader) {
   const token = getToken(authHeader);
   const jwt = jsonwebtoken.decode(token, { complete: true });
-
   try {
     const res = await axios.get(jwksUrl);
     const key = res?.data?.keys?.find((k) => k.kid === jwt.header.kid);
     if (!key) {
-      throw new Error('Key not found');
+      throw new Error("Key is incorrect");
     }
     const pem = key.x5c[0];
     const cert = `-----BEGIN CERTIFICATE-----\n${pem}\n-----END CERTIFICATE-----`;
     return jsonwebtoken.verify(token, cert);
   } catch (error) {
-    logger.error('Token verification failed', { error });
-    throw new Error('Token validation error'); // Thêm thông báo lỗi cụ thể
+    logger.error("VerifyToken failed: ", error);
   }
 }
 
@@ -62,5 +60,5 @@ function getToken(authHeader) {
   }
 
   const split = authHeader.split(' ');
-  return split[1]; // Trả về token
+  return split[1];
 }

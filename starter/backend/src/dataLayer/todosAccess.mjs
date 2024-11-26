@@ -1,15 +1,13 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { QueryCommand, PutCommand, DeleteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { createLogger } from '../utils/logger.mjs';
 import AWSXRay from 'aws-xray-sdk-core';
 
-const logger = createLogger('todoAccess');
 const docClient = AWSXRay.captureAWSv3Client(new DynamoDBClient({ region: "us-east-1" }));
 const todosTable = process.env.TODOS_TABLE;
+const bucketName = process.env.S3_BUCKET;
+const urlExpiration = Number(process.env.SIGNED_URL_EXPIRATION);
 
 export const getTodos = async (userId) => {
-    logger.info('Fetching all todo items for the user');
-
     const command = new QueryCommand({
         TableName: todosTable,
         KeyConditionExpression: 'userId = :userId',
@@ -18,38 +16,19 @@ export const getTodos = async (userId) => {
         }
     });
     const result = await docClient.send(command);
-    return result.Items || [];
+    return result.Items;
 }
 
 export const createTodo = async (newTodo) => {
-    logger.info(`Creating a new todo item with ID: ${newTodo.todoId}`);
     const command = new PutCommand({
         TableName: todosTable,
         Item: newTodo
     });
     await docClient.send(command);
-    return newTodo; // Trả về todo mới tạo
-}
-
-export const updateTodo = async (userId, todoId, updateData) => {
-    logger.info(`Modifying todo item with ID: ${todoId}`);
-    const command = new UpdateCommand({
-        TableName: todosTable,
-        Key: { userId, todoId },
-        ConditionExpression: 'attribute_exists(todoId)',
-        UpdateExpression: 'set #n = :n, dueDate = :due, done = :dn',
-        ExpressionAttributeNames: { '#n': 'name' },
-        ExpressionAttributeValues: {
-            ':n': updateData.name,
-            ':due': updateData.dueDate,
-            ':dn': updateData.done,
-        }
-    });
-    await docClient.send(command);
+    return newTodo;
 }
 
 export const deleteTodo = async (userId, todoId) => {
-    logger.info(`Deleting todo item with ID: ${todoId}`);
     const command = new DeleteCommand({
         TableName: todosTable,
         Key: { userId, todoId }
@@ -57,7 +36,28 @@ export const deleteTodo = async (userId, todoId) => {
     await docClient.send(command);
 }
 
-export const saveImgUrl = async (userId, todoId, bucketName) => {
+export const updateTodo = async (userId, todoId, todoUpdate) => {
+    const command = new UpdateCommand({
+        TableName: todosTable,
+        Key: { userId, todoId },
+        ConditionExpression: 'attribute_exists(todoId)',
+        UpdateExpression: 'set #name = :name, dueDate = :dueDate, done = :done',
+        ExpressionAttributeNames: { '#n': 'name' },
+        ExpressionAttributeValues: {
+            ':name': todoUpdate.name,
+            ':dueDate': todoUpdate.dueDate,
+            ':done': todoUpdate.done,
+        }
+    });
+    await docClient.send(command);
+}
+
+export const signedUrl = async(todoId) => {
+    const uploadUrl = await getSignedUrl(client, new PutObjectCommand({ Bucket: bucketName, Key: todoId }), { expiresIn: urlExpiration });
+    return uploadUrl;
+}
+
+export const saveImgUrl = async (userId, todoId) => {
     try {
         const imageUrl = `https://${bucketName}.s3.amazonaws.com/${todoId}`;
         const command = new UpdateCommand({
@@ -69,9 +69,8 @@ export const saveImgUrl = async (userId, todoId, bucketName) => {
                 ':attachmentUrl': imageUrl,
             }
         });
-        logger.info(`Setting image URL for todo item: ${imageUrl}`);
         await docClient.send(command);
     } catch (error) {
-        logger.error('Error updating image URL', { error });
+        logger.error('Error saveImgUrl: ', error);
     }
 }

@@ -1,9 +1,8 @@
-// TODO: Remove a TODO item by id
 import middy from '@middy/core';
 import cors from '@middy/http-cors';
 import httpErrorHandler from '@middy/http-error-handler';
 import { getUserId } from '../utils.mjs';
-import { deleteTodoLogic } from '../../businessLogic/todos.mjs';
+import { deleteTodo } from '../../dataLayer/todosAccess.mjs';
 
 export const handler = middy()
   .use(httpErrorHandler())
@@ -13,16 +12,17 @@ export const handler = middy()
     })
   )
   .handler(async (event) => {
-    const todoId = event.pathParameters.todoId; // Lấy ID của TODO từ tham số đường dẫn
-    const userId = getUserId(event); // Lấy ID người dùng từ sự kiện
+    const userId = getUserId(event);
+    const todoId = event.pathParameters.todoId;
 
-    await deleteTodoLogic(userId, todoId); // Gọi logic để xóa TODO
+    await deleteTodo(userId, todoId);
 
     return {
-      statusCode: 202, // Mã trạng thái cho thành công (đã tiếp nhận yêu cầu)
+      statusCode: 204,
       headers: {
-        'Access-Control-Allow-Origin': '*' // Cho phép truy cập từ bất kỳ nguồn nào
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Credentials': true
       },
-      body: JSON.stringify({}) // Trả về đối tượng JSON rỗng
+      body: ""
     };
   });
