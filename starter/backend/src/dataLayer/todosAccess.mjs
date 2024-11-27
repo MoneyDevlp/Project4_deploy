@@ -4,8 +4,6 @@ import AWSXRay from 'aws-xray-sdk-core';
 
 const docClient = AWSXRay.captureAWSv3Client(new DynamoDBClient({ region: "us-east-1" }));
 const todosTable = process.env.TODOS_TABLE;
-const bucketName = process.env.S3_BUCKET;
-const urlExpiration = Number(process.env.SIGNED_URL_EXPIRATION);
 
 export const getTodos = async (userId) => {
     const command = new QueryCommand({
@@ -52,12 +50,7 @@ export const updateTodo = async (userId, todoId, todoUpdate) => {
     await docClient.send(command);
 }
 
-export const signedUrl = async(todoId) => {
-    const uploadUrl = await getSignedUrl(client, new PutObjectCommand({ Bucket: bucketName, Key: todoId }), { expiresIn: urlExpiration });
-    return uploadUrl;
-}
-
-export const saveImgUrl = async (userId, todoId) => {
+export const saveImgUrl = async (userId, todoId, bucketName) => {
     try {
         const imageUrl = `https://${bucketName}.s3.amazonaws.com/${todoId}`;
         const command = new UpdateCommand({

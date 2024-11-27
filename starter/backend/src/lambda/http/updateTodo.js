@@ -15,13 +15,13 @@ export const handler = middy()
     const userId = getUserId(event);
     const todoId = event.pathParameters.todoId;
     const todoUpdateBody = JSON.parse(event.body);
-    const todoUpdate = await updateTodo(userId, todoId, todoUpdateBody);
+    await updateTodo(userId, todoId, todoUpdateBody);
     return {
       statusCode: 204,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Credentials': true
       },
-      body: JSON.stringify({ item: todoUpdate }),
+      body: JSON.stringify(todoUpdateBody),
     };
   });
